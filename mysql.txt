@@ -1,0 +1,242 @@
+﻿create database db_name;
+show databases;
+show create database db_name;
+drop database db_name;
+//修改数据库信息
+alter database db_name [修改指令];
+use database;
+
+create table tbl_name(列结构)[表选项];
+create table db_name.tbl_name(列结构)[表选项];
+
+show tables;
+//只获得某种规则的表名
+//通配符%
+show tables [like 'pattern'];  
+//查看表创建时的信息
+show create table tbl_name;
+//查看表的结构
+desc tbl_name;
+
+drop table [if exists] tbl_name;
+
+//修改表名
+rename table tbl_name1 to tbl_name2,...;
+//支持跨数据库重命名(剪切再命名)
+rename table tbl_name1 to db_name.tbl_name2;
+//修改列的定义  change是重命名列
+alter table tbl_name [add|drop|change|modify];
+
+//修改表选项
+alter table tbl_name 新的表选项;
+alter table info_student character set gbk;
+
+//添加数据
+insert into tbl_name [字段列表] values (值列表);
+//获得数据
+select 字段列表 from tbl_name 查询条件;
+//删除数据
+delete from tbl_name 条件;如果要删除所有数据用where 1
+//修改数据
+update tbl_name set 字段=新值,....条件
+
+//查看变量
+show variables like 'pattern';
+
+//增加主键
+create table (
+id int primary key auto_increment,
+....
+)
+alter table tbl_name add primary key(字段);
+alter table tbl_name modify 字段 primary key not null auto_increment;
+
+//外键
+FOREIGN key (外键字段) references 主表名 (关联字段) [主表记录删除时的动作][主表记录更新时的动作];
+//修改外键
+alter table tbl_name drop foreign key 外键名称;
+alter table tbl_name add foreign key 外键定义
+
+//cascade 级联操作 主表被更新或者删除时，那么从表也会执行相应的操作
+//set null 主表数据被更新或者删除时，从表相应的数据指向null  
+//restrict 拒绝主表的相关操作
+
+//级联删除 删除主表中数据时，从表相应的数据会被删除
+alter table tbl_name add foreign key (外键字段) references 主表名 (主键) on delete cascade;
+//on update 只有主表的主键发生变化，才会对从表产生影响
+alter table tbl_name add foreign key (外键字段) references 主表名 (主键) on update restrict;
+
+//指定存储引擎
+alter table tbl_name engine myisam;
+create table tbl_name (
+
+) engine myisam character set utf-8;
+
+//得到代课天数大于44天的老师
+select teacher,sum(days) as sum_days from lesson where 1 group by teacher having sum_days>44;
+//去重
+select distinct days from teacher_class;
+//得到所有记录
+select all days from teacher_class;
+
+//联合查询：把多条select语句的结果合并在一起
+//获取两个班代课最多的老师
+(select t_name,days from teacher_class where c_name = '1' order by days desc limit 1)
+union
+(select t_name,days from teacher_class where c_name='2' order by days desc limit 1);
+
+//union all：包含重复的记录。而union会自动消除重复记录
+//在对子语句的结果进行排序时，order by必须配合limit时才会生效
+(select t_name,days,c_name from teacher_class where c_name='1' order by days limit 10)
+union all
+(select t_name,days,c_name from teacher_class where c_name='2' order by days desc limit 10);
+//对结果统一进行排序
+(select t_name,days,c_name from teacher_class where c_name='1')
+union all
+(select t_name,days,c_name from teacher_class where c_name='2') order by days;
+
+//查询代课天数最多的是哪个老师
+select t_name from teacher_class order by days limit 1; 如果有多个老师代课天数一样多
+//思路  先获取最多的代课天数 然后判断哪个老师的代课天数和最大值是一样的
+select t_name from teacher_class where days = (select max(days) from teacher_class);
+
+//获取所有1班讲师的姓名，再 利用这个姓名，查询其所有班的记录
+select t_name,class_name,days from teacher_class where name in (select t_name from teacher_class from where class_name='1');
+
+//连接查询：一个业务逻辑，使用多个实体的数据，多张表应该在一起使用，将多个表的记录连接起来。
+//内连接：数据内部的连接，要求连接的多个数据必须存在才能进行连接。
+//语法：tbl_left inner join tbl_right on 连接条件
+select teacher.t_name,teacher_class.days from teacher inner join teacher_class on teacher.id = teacher_class.id;
+//外连接：如果负责连接的一个或多个数据不真实存在，则称之为外连接。
+//如果出现了连接不到的数据，mysql会帮我们虚拟出一条不存在的记录(字段值为null)。
+select teacher.name,teacher_class.days from teacher left outer join teacher_class on teacher.id=teacher_class.id;
+//内连接在连接时可以省略连接条件，即每个左表的数据都要与右表的数据做一个连接。也称为交叉连接或笛尔卡积 
+//cross join可以代替inner join。mysql中默认的连接方式是inner join，可以省略inner
+//也可以使用多表查询，不用笛尔卡积
+select teacher.name,teacher_class.days from teacher,teacher_class;
+//有条件的内连接：会在连接时过滤掉非法的连接
+where:数据先按照交叉连接，连接完成之后，再进行数据过滤.不对连接进行过滤
+on:在连接时，就对数据进行判断
+using：要求负责连接的两个实体之间的字段名称一致。
+如果两个实体都有id，则建议使用using，在通用条件时，使用on，在数据过滤时使用where
+select teacher.name,teacher_class.days from teacher inner join teacher_class using (id);
+
+union对两张表的操作是合并数据条数，相当于纵向的，要求两张表的字段必须一样。
+join是偏向于横向的联合，对两张表的字段不做要求，没有限制条件时相当于笛尔卡积。（会把两张表的字段相加起来）
+
+外连接：左外连接left join  右外连接right join  全外连接（mysql不支持）
+不能使用没有条件的外连接
+左连接：如果出现左表的数据连接不到右表的情况，则左表的数据在最终结果内被保留。如果右表的数据连接不到左表，则右表数据直接丢弃。
+
+自然连接：通过mysql自己的判断完成连接过程，不需要指定连接条件。mysql会使用多表内的相同的字段作为连接条件。
+select * from one natural join two;等价于 select * from one inner join two using (public_field);
+
+outfile：将检索到的数据保存到服务器的文件内
+select * into outfile '文件地址' from tbl_name;
+load data infile 'file' into table tbl_name;
+
+插入数据时，如果发生主键冲突，可以改成执行更新操作
+insert into tbl_name (id,..) values (1,..) on duplicate key update name=''..;
+
+删除数据
+delete from one,two using one join two using (public_field) where ..;
+清空表
+truncate tbl_name;
+
+数据库的备份
+1 对于myisam表，直接拷贝.frm .myd和myi文件保存备份即可。然后直接移动到相应的数据库目录即可。
+2 使用mysqldump命令。 mysqldump -uroot -p 密码 库名 [表名1,2...] > 路径+文件名
+3 登陆时，使用 source 可以导入sql文件
+  不登陆时，mysql -u 用户名 -p 密码 库名 < 备份文件
+  
+视图：是一个虚拟表，其内容由查询定义。同真实表一样，视图包含一系列带有名称的列和数据，但是视图并不在数据库中以存储的数据值
+集形式存在。行和列数据来自由定义视图的查询所引用的表，并且在引用视图时动态生成。
+对其中所引用的基础表来说，视图的作用类似于筛选。定义视图的筛选可以来自当前或其他数据库的一个或多个表，或者其他视图。通过
+视图进行查询没有任何限制，通过它们进行数据修改时的限制也很少。
+视图是存储数据库中的查询的sql语句。主要出于两种原因：安全原因，视图可以隐藏一些数据。如社会保险基金表，可以用视图只显示
+姓名 地址 而不显示保险号和工资等。还有就是使复杂的查询易于理解和使用。
+创建视图：
+create view 视图名 as select语句;
+create view v_teacher as select id,t_name from info_teacher;
+创建完视图之后，视图就是存在于数据库中的虚拟表了。
+视图本身是没有数据的，只是通过执行相应的select语句获得数据。
+当查询视图时，就会执行里面的sql语句(select),形成结果。也就是说每次都会执行。
+删除视图：
+drop view [if exists] view_name;
+修改视图:也就是修改select语句
+alter view view_name as select语句;
+修改视图内部结构：
+alter view v_teacher (v1,v2) as select id,t_name from info_teacher;
+缩减业务逻辑：将复杂的业务逻辑简单的完成。
+先使用视图完成一定的逻辑，再在视图的基础上完成另外的逻辑。
+视图的执行过程： merge和template  指的是一个视图在什么时候执行，依据哪些方式执行
+merge:合并的方式执行。每当执行的时候，先将我们视图的sql语句与外部查询视图的sql语句混合在一起，最终执行。
+template:临时表模式。每当查询的时候，将视图所使用的select语句生成一个结果的临时表，再在当前的临时表内进行查询。
+尽量使用视图完成读操作。
+对视图修改时，也是对真实表的修改，会即时生效。
+删除视图时，不会销毁实体表内的数据。
+如果做的是外部接口，一个数据库多个应用，针对每一个应用，采取不同的视图接口。
+
+事务：一组sql语句的操作单元，组内所有sql语句完成一个业务。
+start transaction;
+...;
+commit|rollback;
+
+事务的特点（ACID属性）：
+1 原子性。（虽然在语法上是一组sql语句，但是在功能上就是一个功能，不可再分）
+事务中包含的程序作为数据库的逻辑工作单位，它所做的对数据修改操作要么全部执行，要么完全不执行。
+2 一致性。事务的一致性指的是在一个事务执行之前和执行之后数据库都必须处于一致性状态。这种特性称为事务的一致性。假如数据库的状态满足所有的完整性约束，就说该数据库是一致的。
+例如完整性约束a+b=10，一个事务改变了a，那么b也应随之改变。
+3 隔离性。事务之间是隔离的。即一个事务内部的操作及正在操作的数据必须封锁起来，不被其它企图进行修改的事务看到。
+4 持久性。持久性意味着当系统或介质发生故障时，确保已提交事务的更新不能丢失。即一旦一个事务提交，DBMS保证它对数据库中数据的改变应该是永久性的，即对已提交事务的更新能恢复。持久性通过数据库备份和恢复来保证。
+
+索引：是一种特殊的文件，它们包含着对数据表里所有记录的引用指针。能够加快数据库的查询速度。
+1 普通索引
+	create index index_name on table (column(length));
+	alter table tbl_name add index index_name on (column(length));
+	create table 'table' (
+		index index_name (title(length))
+	)
+	drop index index_name on table;
+2 唯一索引：索引列的值必须唯一，但允许有空值（和主键不同）
+			如果是组合索引，则列值的组合必须唯一
+	create unique index index_name on table (column(length));
+	alter table tbl_name add unique index index_name on (column(length));
+	create table 'table' (
+		unique index_name (title(length))
+	)
+3 全文索引
+	create table 'table' (
+		fulltext (content)
+	)
+	alter table article add fulltext index_name(content);
+	create fulltext index index_name on article(content);
+	
+
+触发器：监听数据进行操作：在当前的表上，设置一个对每行数据的一个监听器，监听相关事件，每当事件发生时，会执行一段由sql完成的一段功能的代码。
+	触发器元素： 事件  执行代码
+	create trigger 名字 事件 执行性代码
+	事件：插入 删除 修改
+	事件的时机：执行之前和之后
+	Before insert,before delete,before update
+	After insert,after delete,after update
+	create trigger jiaobanfei after update on student
+	for each row
+	update class set money=money-20;
+	
+	drop trigger trigger_name;
+	show create trigger trigger_name;
+	
+	在触发器内，获得触发该程序的数据，利用触发程序内的new和old完成。
+	old：监听事件所在表上的数据，在事件发生之前的数据为旧数据。
+	new：监听表上，事件发生之后，新处理完毕的数据。
+	数据就是触发该事件的记录。
+	create trigger jiaobanfei after update on student
+	for each row
+	update class set money=money+(old.stumoney-new.stumoney);
+	对于insert，不能使用old
+	对于delete，不能使用new
+	
+
+
+

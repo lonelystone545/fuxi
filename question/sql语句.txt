@@ -1,0 +1,418 @@
+http://blog.csdn.net/li12412414/article/details/52024919
+
+#学生表
+create table student (
+	id int(10) not null primary key auto_increment,
+	name varchar(20) not null,
+	sex varchar(4),
+	birth YEAR ,
+	department varchar(20) not null,
+	address varchar(50)
+);
+#成绩表
+create table score (
+	id int(10) not null primary key auto_increment,
+	stu_id int(10) not null,
+	c_name varchar(20),
+	grade int(10),
+	foreign key(stu_id) references student (id)
+);
+
+#添加记录
+INSERT INTO student VALUES( 901,'张老大', '男',1985,'计算机系', '北京市海淀区');
+INSERT INTO student VALUES( 902,'张老二', '男',1986,'中文系', '北京市昌平区');
+INSERT INTO student VALUES( 903,'张三', '女',1990,'中文系', '湖南省永州市');
+INSERT INTO student VALUES( 904,'李四', '男',1990,'英语系', '辽宁省阜新市');
+INSERT INTO student VALUES( 905,'王五', '女',1991,'英语系', '福建省厦门市');
+INSERT INTO student VALUES( 906,'王六', '男',1988,'计算机系', '湖南省衡阳市');
+
+INSERT INTO score VALUES(NULL,901, '计算机',98);
+INSERT INTO score VALUES(NULL,901, '英语', 80);
+INSERT INTO score VALUES(NULL,902, '计算机',65);
+INSERT INTO score VALUES(NULL,902, '中文',88);
+INSERT INTO score VALUES(NULL,903, '中文',95);
+INSERT INTO score VALUES(NULL,904, '计算机',70);
+INSERT INTO score VALUES(NULL,904, '英语',92);
+INSERT INTO score VALUES(NULL,905, '英语',94);
+INSERT INTO score VALUES(NULL,906, '计算机',90);
+INSERT INTO score VALUES(NULL,906, '英语',85);
+
+#查询student表的第2-4条记录
+select * from student limit 1,3;
+
+#从student表查询所有学生的学号（id）、姓名（name）和院系（department）的信息
+select id,name,department from student;
+
+#从student表中查询计算机系和英语系的学生的信息
+select * from student where department in ('计算机系','英语系');
+
+#从student表中查询年龄18~22岁的学生信息
+select id,name,sex,2017-birth as age,department,address from student where 2017-birth between 18 and 22;
+select id,name,sex,2017-birth as age,department,address from student where 2017-birth>=18 and 2017-birth<=22;
+
+#从student表中查询每个院系有多少人 
+select department,count(id) as number from student group by department;
+
+#获取成绩在80分以上的计算机科目的学生id
+select stu_id,grade from score where grade>80 and c_name='计算机';
+select stu_id,grade from (select stu_id,grade,c_name from score where grade>80) as score_tmp where c_name='计算机';
+
+#从score表中查询每个科目的最高分
+select c_name,max(grade) from score group by c_name;
+
+#查询李四的考试科目（c_name）和考试成绩（grade）
+select c_name,grade from score where stu_id=(select id from student where name='李四');
+
+#用连接的方式查询所有学生的信息和考试信息
+select student.id,name,sex,birth,department,address,grade from student,score where student.id = score.stu_id;
+select student.id,name,sex,birth,department,address,grade from student inner join score on student.id = score.stu_id;
+
+#计算每个学生的总成绩
+select student.id,student.name,sum(score.grade) from student,score where student.id = score.stu_id group by student.name;
+
+#计算每个考试科目的平均成绩
+select c_name,avg(grade) from score group by c_name;
+
+#查询计算机成绩低于95的学生信息
+select student.id,student.name,score.grade from student,score where student.id=score.stu_id and score.c_name='计算机' and score.grade<95;
+select * from student where student.id in (select stu_id from score where c_name='计算机' and grade<95); 
+这里的子查询语句返回的是多行，只能使用in
+
+#查询同时参加计算机和英语考试的学生的信息
+select * from student where id = any(select stu_id from score where stu_id in (select stu_id from score where c_name='计算机')and c_name='英语');
+select a.* from student a,score b,score c where a.id=b.stu_id and b.c_name='计算机' and a.id=c.stu_id and c.c_name='英语';
+
+#将计算机考试成绩从高到底进行排序
+select stu_id,grade from score where c_name='计算机' order by grade desc;
+
+#从student表和score表中查询出学生的学号，然后合并查询结果
+select id from student union select stu_id from score;
+
+#查询姓张或者姓王的同学的姓名、院系和考试科目及成绩
+select name,department,c_name,grade from student,score where (name like '张%' or name like '王%') and stu_id=student.id;
+
+#查询都是湖南的学生的姓名、年龄、院系和考试科目及成绩
+select name,2017-birth as age,c_name,grade from student,score where student.id=stu_id and address like '湖南%';
+
+#查询每门科目都大于80分的学生id
+select stu_id from score group by stu_id having min(grade)>80; 
+select distinct stu_id from score where stu_id not in (select distinct stu_id from score where grade<=80);
+
+#删除除了id不同，其他都相同的成绩表中冗余信息
+delete from score where id not in (select min(id) from score group by stu_id,grade,c_name);
+
+##########################################
+create table team (
+	id int primary key auto_increment,
+	name varchar(11) not null
+);
+insert into team values (1,'a1');
+insert into team values (2,'a2');
+insert into team values (3,'a3');
+insert into team values (4,'a4');
+team表，有一字段name,有四条记录，分别对应a b c d，现在四个球队进行比赛，显示所有可能的比赛组合
+select t1.name,t2.name from team t1 cross join team t2 where t1.name != t2.name; 错误的，会出现重复的组合
+select t1.name,t2.name from team t1,team t2 where t1.name < t2.name;
+
+###########################################
+从TestDB 数据表中查询出所有月份的发生额都比101 科目相应月份的发生额高的科目。
+请注意：TestDB 中有很多科目，都有1 －12 月份的发生额。
+AccID ：科目代码，Occmonth ：发生额月份，DebitOccur ：发生额。
+
+select a.* from TestDB a,(select Occmonth,max(DebitOccur) Debit101occur from TestDB where AccID='101' group by Occmonth) b 
+where a.Occmonth=b.Occmonth and a.DebitOccur>b.DebitOccur;
+
+###########################################
+怎么将如下的表查询成以下的结果
+year   month amount
+1991   1     1.1
+1991   2     1.2
+1991   3     1.3
+1991   4     1.4
+1992   1     2.1
+1992   2     2.2
+1992   3     2.3
+1992   4     2.4
+查成这样一个结果
+year  m1   m2   m3   m4
+1991 1.1  1.2  1.3  1.4
+1992 2.1  2.2  2.3  2.4 
+select year,
+	(select amount from aaa m where month=1 and m.year=aaa.year) as m1,
+	(select amount from aaa m where month=2 and m.year=aaa.year) as m2,
+	(select amount from aaa m where month=3 and m.year=aaa.year) as m3,
+	(select amount from aaa m where month=4 and m.year=aaa.year) as m4 from aaa group by year;
+	
+###########################################
+复制表（只复制表的结构 源表名:a 新表名:b）
+select * into b from a where 1<>1   如果使用where 1=1 则拷贝表结构和数据内容
+<>不等于，如果左操作数不等于右操作数，结果为true
+
+###########################################
+拷贝表( 拷贝数据, 源表名：a 目标表名：b) 
+insert into b(a,b,c) select d,e,f from a;
+
+###########################################
+两张关联表，删除主表在副表中没有的信息
+delete from info1 where not exists (select * from info2 where info1.id=info2.id);
+
+###########################################
+两张表，均有key和value字段，如果b的key在a也有，则将b的value替换为a中对应的value
+update b set b.value = (select a.value from a where a.key=b.key) where b.id in (select b.id from b,a where b.key=a.key);
+
+###########################################
+原表: 
+courseid coursename score 
+------------------------------------- 
+1 java 70 
+2 oracle 90 
+3 xml 40 
+4 jsp 30 
+5 servlet 80 
+------------------------------------- 
+为了便于阅读, 查询此表后的结果显式如下( 及格分数为60): 
+courseid coursename score mark 
+--------------------------------------------------- 
+1 java 70 pass 
+2 oracle 90 pass 
+3 xml 40 fail 
+4 jsp 30 fail 
+5 servlet 80 pass 
+
+sql语句？
+select courseid,coursename,score,
+	(CASE 
+		WHEN score-60 <0 THEN 'fail'
+		ELSE 'pass'
+	 END
+	) as mark from course;
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&select子查询&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+where型子查询：将内层查询的结果作为外层查询的比较条件
+from型子查询：将内层查询的结果供外层再次查询(临时表)
+exists型子查询：将外层查询结果拿到内层，看内层的查询是否成立
+定义：exists子查询就是对外层表进行循环，再对内表进行内层查询。
+和in ()差不多，但是它们还是有区别的。主要是看两个张表大小差的程度。
+若子查询表大则用exists（内层索引），子查询表小则用in（外层索引）；
+
+使用子查询的原则：
+一个子查询语句必须放在（）内。
+子查询中不包含order by子句，对于一个select语句，只能用一个order by子句。并且如果指定了，它必须放在select语句的最后。
+在子查询中有两种比较条件：单行运算符(> = >= <> < <=)（用于行和标量子查询和多行运算符(in any all)(用于列子查询)
+
+案例：
+创建测试表
+CREATE TABLE PLAYERS  
+    (PLAYERNO      INTEGER      NOT NULL,  
+    NAME           CHAR(15)     NOT NULL,  
+    INITIALS       CHAR(3)      NOT NULL,  
+    BIRTH_DATE     DATE                 ,  
+    SEX            CHAR(1)      NOT NULL,  
+    JOINED         SMALLINT     NOT NULL,  
+    STREET         VARCHAR(30)  NOT NULL,  
+    HOUSENO        CHAR(4)              ,  
+    POSTCODE       CHAR(6)              ,  
+    TOWN           VARCHAR(30)  NOT NULL,  
+    PHONENO        CHAR(13)             ,  
+    LEAGUENO       CHAR(4)              ,  
+    PRIMARY KEY    (PLAYERNO));  
+  
+CREATE   TABLE PENALTIES  
+        (PAYMENTNO      INTEGER      NOT NULL,  
+         PLAYERNO       INTEGER      NOT NULL,  
+         PAYMENT_DATE   DATE         NOT NULL,  
+         AMOUNT         DECIMAL(7,2) NOT NULL,  
+         PRIMARY KEY    (PAYMENTNO));  
+表players为球员信息基本表，表penalties为有过罚款记录的球员信息列表
+####(表子查询)#####
+获取编号小于10的男性球员号码
+select playerno from (select playerno,sex from players where playerno<10) as tmp where sex='M';
+获取和100号球员性别相同并且居住在同一城市的球员号码。
+#####（行子查询）#######
+select playno from players where (sex,town)=(select sex,town from players where playerno=100);
+获取和27号球员出生在同一年的球员号码(标量子查询)
+select playerno from players where year(birth_date)=(select yeay(birth_date) from players where playerno=27) and playerno<>27;
+
+in 在指定项内    
+any：必须在比较操作符的后面，表示与子查询返回的任何值比较为true，则返回true
+all：必须在比较操作符的后面，表示与子查询返回的所有制比较为true，则返回true
+获取球员性别为女的所有球员的球员号 名字以及所在的城市
+select playerno,name,town from players where playerno in (select playerno from players where sex='F');
+获取至少比同城的另一球员年轻的所有球员的号码 日志 居住城市
+select playerno,birth_date,town from players as p1 where birth_date>any(select birth_date from players as p2 where p1.town=p2.town);
+获取最老球员的号码 名字及生日
+select playerno,name,birth_date from players where birth_date<= all(select birth_date from players);
+
+exists型子查询：当使用exists关键字时，内层查询语句不返回查询的记录，而是返回一个真假值。如果内层查询语句查询到满足条件的记录，
+只要子查询中至少一个返回一个值，则exists语句的值为true，就返回true，否则返回false。当返回值为true时，外层查询语句将进行查询，
+否则不进行查询。not exists则相反。
+exists的用法和in ()差不多，但是它们还是有区别的。主要是看两个张表大小差的程度。
+若子查询表大则用exists（内层索引），子查询表小则用in（外层索引）;
+
+获取那些至少支付了一次罚款的球员的名字和首字母
+select name,initials from players where exists (select * from penalties where playerno=players.playerno);
+获取那些从来没有罚款的球员的名字和首字母
+select name,initials from players where not exists (select * from penalties where playerno=players.playerno);
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&having子句&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+区别在于where子句用在from子句处理之后选择一行，而having子句用来在group by子句执行以后选择一行，即having是组从组中筛选，
+而where是从记录中筛选。一个having子句也可以脱离group by子句单独使用。一般情况下having配合group by与聚合函数，如max/min，avg，sum，count一起使用，
+聚合函数和其它函数的根本区别就是它们一般作用在多条记录上。where子句条件中的表达式不包含聚合函数。
+
+规则：having子句中的所有列必须出现在一个聚合函数中，或者出现在group by子句指定的列的列表中。
+
+测试表：
+CREATE   TABLE PENALTIES  
+        (PAYMENTNO      INTEGER      NOT NULL,  
+         PLAYERNO       INTEGER      NOT NULL,  
+         PAYMENT_DATE   DATE         NOT NULL,  
+         AMOUNT         DECIMAL(7,2) NOT NULL,  
+         PRIMARY KEY    (PAYMENTNO));  
+表中记录球员罚款的信息
+
+INSERT INTO PENALTIES VALUES (1,  6, '1980-12-08',100);  
+INSERT INTO PENALTIES VALUES (2, 44, '1981-05-05', 75);  
+INSERT INTO PENALTIES VALUES (3, 27, '1983-09-10',100);  
+INSERT INTO PENALTIES VALUES (4,104, '1984-12-08', 50);  
+INSERT INTO PENALTIES VALUES (5, 44, '1980-12-08', 25);  
+INSERT INTO PENALTIES VALUES (6,  8, '1980-12-08', 25);  
+INSERT INTO PENALTIES VALUES (7, 44, '1982-12-30', 30);  
+INSERT INTO PENALTIES VALUES (8, 27, '1984-11-12', 75);  
+
+获取最后一次罚款发生在1984年的每个球员的号码
+select playerno from penalties group by playerno having max(year(payment_date))=1984;
+对于具有最高罚款总额的球员，给出球员号码和罚款总额
+select playerno,sum(amount) from penalties by playerno having sum(amount)>=all(select sum(amount) from penalties group by playerno);
+如果一个select语句没有group by子句，表中所有行都分组为1行
+查询罚款总,只有大于250美元时才列出
+select sum(amount) from penalties having sum(amount)>=250;
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&orderby子句&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+对指定的结果集进行排序，默认是按照升序排序asc，desc降序
+测试表：
+CREATE   TABLE PENALTIES  
+        (PAYMENTNO      INTEGER      NOT NULL,  
+         PLAYERNO       INTEGER      NOT NULL,  
+         PAYMENT_DATE   DATE         NOT NULL,  
+         AMOUNT         DECIMAL(7,2) NOT NULL,  
+         PRIMARY KEY    (PAYMENTNO));  
+表中记录球员罚款的信息
+INSERT INTO PENALTIES VALUES (1,  6, '1980-12-08',100);  
+INSERT INTO PENALTIES VALUES (2, 44, '1981-05-05', 75);  
+INSERT INTO PENALTIES VALUES (3, 27, '1983-09-10',100);  
+INSERT INTO PENALTIES VALUES (4,104, '1984-12-08', 50);  
+INSERT INTO PENALTIES VALUES (5, 44, '1980-12-08', 25);  
+INSERT INTO PENALTIES VALUES (6,  8, '1980-12-08', 25);  
+INSERT INTO PENALTIES VALUES (7, 44, '1982-12-30', 30);  
+INSERT INTO PENALTIES VALUES (8, 27, '1984-11-12', 75); 
+
+按照列名排序
+找出每笔罚款的支付号码和引起罚款的球员号码，按照球员号码排序
+select paymentno,playerno from penalties order by playerno;
+对每笔罚款，获取球员号码和罚款数额，按照这两列的结果排序(如果前面一列包含重复的值，则按照后面一列进行排序)
+select playerno,amount from penalties order by playerno,amount;
+获取所有罚款额，并按照球员号码和罚款额排序
+select amount from penalties order by playerno,amount;
+
+按照表达式排序
+对于所有罚款球员，获取所有信息（罚款单号 球员号 罚单时间 罚款额度） 并按照罚款单时间的年份进行排序
+select * from penalties order by substr(payment_date,1,4);
+
+注意：group by比order by先执行，order by不会对group by内部进行排序。要查出group by中最大或者最小的某个字段时使用max和min函数。
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&null    not null&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+null和not null是mysql字段属性，数据类型的属性，不属于任何类型。null不等于空值，空值是不占用存储空间，null占用存储空间。
+查询字段为空时，使用is null，不能使用=null，因为mysql中的null不等于任何其他值
+优化器会把=null的查询过滤掉而不返回任何数据，查询某个字段非空时使用is not null
+ifnull():语法如下：
+    IFNULL(expr1,expr2)
+    如果expr1不是NULL，IFNULL()返回expr1，否则它返回expr2。IFNULL()返回一个数字或字符串值，取决于它被使用的上下文环境。
+测试表：
+CREATE   TABLE PLAYERS  
+        (PLAYERNO       INTEGER      NOT NULL,  
+         NAME           CHAR(15)     NOT NULL,  
+         INITIALS       CHAR(3)      NOT NULL,  
+         BIRTH_DATE     DATE                 ,  
+         SEX            CHAR(1)      NOT NULL,  
+         JOINED         SMALLINT     NOT NULL,  
+         STREET         VARCHAR(30)  NOT NULL,  
+         HOUSENO        CHAR(4)              ,  
+         POSTCODE       CHAR(6)              ,  
+         TOWN           VARCHAR(30)  NOT NULL,  
+         PHONENO        CHAR(13)             ,  
+         LEAGUENO       CHAR(4)              ,  
+         PRIMARY KEY    (PLAYERNO));  
+INSERT INTO PLAYERS VALUES (2, 'Everett', 'R', '1948-09-01', 'M', 1975, 'Stoney Road', '43', '3575NH', 'Stratford', '070-237893', '2411');  
+INSERT INTO PLAYERS VALUES (6, 'Parmenter', 'R', '1964-06-25', 'M', 1977, 'Haseltine Lane', '80', '1234KK', 'Stratford', '070-476537', '8467');  
+INSERT INTO PLAYERS VALUES (7, 'Wise', 'GWS', '1963-05-11', 'M', 1981, 'Edgecombe Way', '39', '9758VB', 'Stratford', '070-347689', NULL);  
+INSERT INTO PLAYERS VALUES (8, 'Newcastle', 'B', '1962-07-08', 'F', 1980, 'Station Road','4', '6584WO', 'Inglewood', '070-458458', '2983');  
+INSERT INTO PLAYERS VALUES (27, 'Collins', 'DD', '1964-12-28', 'F', 1983, 'Long Drive','804', '8457DK', 'Eltham', '079-234857', '2513');  
+INSERT INTO PLAYERS VALUES (28, 'Collins', 'C', '1963-06-22', 'F', 1983, 'Old Main Road','10', '1294QK', 'Midhurst', '010-659599', NULL);  
+INSERT INTO PLAYERS VALUES (39, 'Bishop', 'D', '1956-10-29', 'M', 1980, 'Eaton Square','78', '9629CD', 'Stratford', '070-393435', NULL);  
+INSERT INTO PLAYERS VALUES (44, 'Baker', 'E', '1963-01-09', 'M', 1980, 'Lewis Street','23', '4444LJ', 'Inglewood', '070-368753', '1124');  
+INSERT INTO PLAYERS VALUES (57, 'Brown', 'M', '1971-08-17', 'M', 1985, 'Edgecombe Way','16', '4377CB', 'Stratford', '070-473458', '6409');  
+INSERT INTO PLAYERS VALUES (83, 'Hope', 'PK', '1956-11-11', 'M', 1982, 'Magdalene Road','16A', '1812UP', 'Stratford', '070-353548', '1608');  
+INSERT INTO PLAYERS VALUES (95, 'Miller', 'P', '1963-05-14', 'M', 1972, 'High Street','33A', '5746OP', 'Douglas', '070-867564', NULL);  
+INSERT INTO PLAYERS VALUES (100, 'Parmenter', 'P', '1963-02-28', 'M', 1979, 'Haseltine Lane','80', '6494SG', 'Stratford', '070-494593', '6524');  
+INSERT INTO PLAYERS VALUES (104, 'Moorman', 'D', '1970-05-10', 'F', 1984, 'Stout Street','65', '9437AO', 'Eltham', '079-987571', '7060');  
+INSERT INTO PLAYERS VALUES (112, 'Bailey', 'IP', '1963-10-01', 'F', 1984, 'Vixen Road','8', '6392LK', 'Plymouth', '010-548745', '1319');  
+获取拥有一个联盟会员号码的每个球员的号码和联盟会员的号码
+select playerno,leagueno from players where leagueno is not null
+
+排序时，mysql将null作为最小值处理
+not null字段不能插入null，但是可以插入空值
+ 
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&limit子句&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+limit m,n  第一个参数表示返回记录行的偏移量，第二个参数表示返回记录行的最大数据（初始记录行的偏移量为0）
+使用limit时，最好能够最大限度的使用索引，避免全表扫描，提高工作效率。
+
+获取前四个最大球员的号码和名字
+select playerno,name from players order by playerno desc limit 4;
+获取加入球队最早的两个球员的号码和名字，如果有年份重复的，只显示球员最小的球员
+select playerno,name from players order by joined desc,playerno asc limit 2;
+
+通过使用limit 0可以检查sql语句是否有语法错误，此时返回的是一个空记录，还可以返回表的结构
+limit和distinct结合使用，这样返回的记录是不重复的
+select distinct joined from players limit 6;如果有重复的记录，则在实际查询时，会超过6
+
+limit分页查询优化
+数据量比较大时，limit性能就会下降。
+offset比较小时，直接使用limit m,n
+offset比较大时，使用子查询优化
+select name from players where playerno >= (select playerno from players order by  playerno limit 5,1) limit 6;
+limit和order by一起使用时，一旦找到了排序结果的第一个rowcount行，则系统结束排序。而不会对整个表进行排序，如果单独使用order by一起使用时，一旦找到了排序结果的第一个rowcount行，则系统结束排序。而不会对整个表进行排序，如果单独使用order
+by子句，则会对整个表进行排序。
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&group by子句&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+SELECT count(*) FROM 表名 WHERE 条件 // 这样查出来的是总记录条
+SELECT count(*) FROM 表名 WHERE 条件 GROUP BY id //这样统计的会是每组的记录条数.
+获得第二个sql语句的总记录数select count(*) from(SELECT count(*) FROM 表名 WHERE 条件 GROUP BY id ) a ;
+统计分组之后，每组的总数
+select num,count(*) as counts from tableA group by num;
+对num去重之后的数量统计,
+select num,count(distinct num) as counts from tableA group by num;
+
+按name分组取val值最大的所在的记录
+//select name,max(val),memo from tb group by name;这个在求memo信息时出错了 应变为
+select * from tb where (name,val) in (select name,max(val) from tb group by name);
+select a.* from tb a,(select name,max(val) val from tb group by name) b where a.name=b.name and a.val = b.val;
+select a.* from tb a where val=(select max(val) from tb where name=a.name);
+select a.* from tb a where 1>(select count(*) from tb where name=a.name and val>a.val);
+按name分组取val值最小的所在的记录
+select a.* from tb a where val=(select min(val) from tb where name=a.name);
+select a.* from tb a,(select name,min(val) val from tb group by name) b where a.name=b.name and a.val=b.val;
+select a.*  from tb a inner join (select name,min(val) val from tb group by name) b on a.name=b.name and a.val=b.val;
+select a.* from tb a where 1 > (select count(*) from tb where name=a.name and val<a.val);
+按name分组取第一次出现的行所在的数据
+select a.* from tb a where val=(select val from tb where name=a.name limit 1);
+#错误的select a.* from tb a,(select name,val from tb group by name limit 1) b where a.name=b.name and a.val=b.val;
+按name分组取最大的两个(N个)val
+select a.* from tb a where 2>(select count(*) from tb where name=a.name and val>a.val);
+#错误的select a.* from tb a where val in (select val from tb where name=a.name limit 2);
+select a.* from tb a where exists (select count(*) from tb where name=a.name and val>a.val having count(*)<2);
+
+注意：group by和limit使用时，limit是对分组之后的结果再进行限制的。

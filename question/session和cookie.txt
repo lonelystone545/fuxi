@@ -1,0 +1,196 @@
+服务器端获取cookie：
+Cookie[] cookies = request.getCookies();
+for(int i=0;i<cookies.length;i++) {
+	Cookie cookie = cookies[i];
+	if(cookie.getName().equals("")){
+		....
+	}
+}
+服务器端设置cookie：
+Cookie cookie = new Cookie("username",username);
+cookie.setMaxAge(60*30);//30分钟
+response.addCookie(cookie);
+
+cookie分为会话cookie和持久cookie。
+如果不设置过期时间，则这个cookie的生命周期为浏览器的会话期间，浏览器关闭，cookie就会销毁。
+会话cookie一般不保存在磁盘上而是保存在内存中。
+如果设置了过期时间，浏览器就会把cookie保存到磁盘上
+
+cookie中使用unicode字符时，需要对unicode字符进行编码，否则会出现乱码。
+解决：
+String val = java.net.URLEncoder.encode("王元","utf-8");
+cookie cookie = new Cookie("name",val);
+cookie.setMaxAge(3600);
+response.addCookie(cookie);  在cookie中存储时，以base64存储
+读取时，如果不设置编码，会发生乱码
+Cookie[] cookies = request.getCookies();
+for(int i=0;i<cookie.length;i++){
+	Cookie cookie = cookies[i];
+	//对没有中文的cookie进行解码(base64解码)
+	if(cookie.getName().equals("name")){
+		String val = java.net.URLDecoder.decode("cookie.getValue(),"utf-8");
+	} else {
+	
+	}
+}
+
+cookie具有不可跨域名的特性：浏览器访问google时只会携带google的cookie，而不会携带baidu的cookie。
+浏览器判断一个网站能否操作另一个网站的cookie，是根据域名。google和baidu的域名不一样，因此google不能操作baidu的cookie。
+
+cookie的跨域访问：
+http://www.cnblogs.com/hujunzheng/p/5744755.html
+http://blog.csdn.net/smq29661318/article/details/51023558
+随着项目模块越来越多，很多模块都是独立部署。模块之间的交流可能会通过cookie来完成。比如门户和应用，分别部署在不同的机器或者
+web容器中，假如用户登录之后，会在浏览器客户端写入cookie（记录用户的信息），应用想要获取门户下的cookie时，这就产生了cookie的跨域问题。
+cookie一般是由于用户访问页面而被创建的。默认情况下，只有与创建cookie的页面处于同一个目录或者创建cookie页面的子目录下的网页才可以访问。
+那么此时如果希望父级或者整个web站点都能使用cookie，就需要进行路径设置。
+path：asp.net默认是/，就是根目录。比如cookie1的path为/test/,cookie2的path为/test/wy/，那么test下的所有页面都可以访问cookie1，而/test/和
+/test/wywy/不能访问cookie2，只有/test/wy/下面的页面才能访问到。因此通过设置path为/可以使整个web应用访问到该cookie。
+domain表示cookie所在的域。默认为请求的地址，如网址为www.jb51.net/test/test.aspx，那么domain默认为www.jb51.net。而跨域访问，如域A为t1.test.com，
+域B为t2.test.com，那么在域A生产一个令域A和域B都能访问的cookie就要将该cookie的domain设置为.test.com；如果要在域A生产一个令域A不能访问而域B能访问
+的cookie就要将该cookie的domain设置为t2.test.com。这个只能解决二级域名的问题。
+nginx反向代理解决cookie跨域：
+反向代理（Reverse Proxy）方式是指以代理服务器来接受Internet上的连接请求，然后将请求转发给内部网络上的服务器；并将从服务器上得到的结果返回给Internet上请求连接的客户端，此时代理服务器对外就表现为一个服务器。
+反向代理服务器对于客户端而言它就像是原始服务器，并且客户端不需要进行任何特别的设置。客户端向反向代理 的命名空间(name-space)中的内容发送普通请求，接着反向代理将判断向何处(原始服务器)转交请求，
+并将获得的内容返回给客户端，就像这些内容 原本就是它自己的一样。
+其实就是通过nginx，将不同工程的cookie放到nginx域下，通过nginx反向代理就可以取到不同工程写入的cookie.
+或者配置一个代理路径来替换实际访问的路径，这使得浏览器认为访问的资源都属于相同的协议 域名和端口。而实际访问的并不是代理路径，
+而是通过代理路径找到实际路径进行访问。
+jsonp方式解决cookie跨域：
+JQuery对于Ajax的跨域请求有两类解决方案，不过都是只支持get方式。分别是JQuery的?jquery.ajax?jsonp格式和jquery.getScript方式。
+如果获取的数据文件存放在远程服务器上（域名不同，也就是跨域获取数据），则需要使用jsonp类型。使用这种类型的话，会创建一个查询字符串参数 callback=? ，
+这个参数会加在请求的URL后面。服务器端应当在JSON数据前加上回调函数名，以便完成一个有效的JSONP请求。
+意思就是远程服务端需要对返回的数据做下处理，根据客户端提交的callback的参数，返回一个callback(json)的数据，
+而客户端将会用script的方式处理返回数据，来对json数据做处理。JQuery.getJSON也同样支持jsonp的数据方式调用。
+p3p可以解决cookie跨域问题
+
+如何实现永久登录？
+用户在第一次登录时，将登录的信息如账号 密码等保存在cookie中，并控制cookie的有效期，下次访问时再去验证cookie中的登录信息即可。
+方案一：直接把用户名和密码保存在cookie中，下次登录时直接取出与数据库中的用户名密码比较。cookie是存放在客户端，不安全。
+方案二：将密码加密后保存在cookie中，数据库中存放的也是加密的密码，然后进行比较。（md5，不可逆加密）
+方案三：可以不保存密码。把登录的时间戳保存到cookie和数据库中，到时只要验证用户名和登录时间戳即可。
+方案四：上面方式都需要去查询数据库。这种方案，只需要在登录时查询一次数据库，以后访问验证登录信息时，不再查询数据库。将账号按照一定的
+规则加密后，连同账号一块保存在cookie中。下次访问时，只需要判断账号的加密规则是否正确即可。
+
+Cookie的修改和删除：cookie不提供修改 删除操作。如果要修改某个cookie，只需要新建一个同名的cookie，并添加到response中覆盖原先的cookie即可。
+如果要删除某个cookie，只需要新建一个同名的cookie，并将MaxAge设置为0，并添加到response中覆盖原先的cookie。
+
+cookie中的属性：
+name cookie的名称
+value cookie的值
+maxAge cookie的有效期 单位秒 正数表示多少秒之后失效。负数表示该cookie为临时的cookie，关闭浏览器即失效，默认-1。0表示删除该cookie。
+path cookie的使用路径。/sessionWeb/ 表示只有contextPath为/sessionWeb的程序可以访问该cookie。/表示本域名下的contextPath都可以访问cookie。
+domain 可以访问该cookie的域名。.google.com 表示所有以google.com结尾的域名都可以访问该cookie。
+comment cookie的说明。浏览器显示cookie信息时显示该说明。
+version cookie使用的版本号。 0 表示Netscape的cookie规范，1表示遵循W3C的规范。
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&session&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+session是保存在服务器端的。session也是一种键值对。
+
+在服务器端获取session
+HttpSession session = request.getSession();
+String username = (String)session.getAttribute("username");
+在服务器端设置session
+HttpSession session = request.getSession();
+session.setAttribute("username",username);
+
+
+一般情况下，一个浏览器对应一个session，比如同时开了IE Firefox Chrome三个浏览器访问网站，那么对于同一个web应用来说，是开了3个session。
+或者理解为一个进程一个session，子进程（超链接）除外。比如打开两个IE进程，但是这两个进程并不共享cookie
+
+session在默认情况下是以cookie内存储的sessionID作为识别标志，而cookie在浏览器之间独立。所以对于同一个浏览器来说，不管开了多少个窗口，都只有一个session。
+
+有的浏览器（如360），可以配置单进程或者多进程模式。
+
+
+
+1 session是存在在服务器内存中
+2 一个用户浏览器，独享一个session域对象
+3 session的生命周期默认是30分钟。在tomcat的config文件夹下的web.xml中有session配置，30分钟。
+	可以在tomcat/config/web.xml 修改session-config,这是对所有web应用都生效
+	可以在单个web应用中的web.xml中添加<session-config>进行配置 单位（分钟）
+	可以通过sesson.setMaxInactiveInterval(60) 单位60s 
+session的生命周期指的是期间没有被访问，多久会失效。如果被访问则重新计时。而cookie的生命周期指的是累积时间。如果重启tomcat或者reload web应用或者关机或者session.invalidate()方法（用于安全退出），session会失效。通过session.removeAttribute(String name)使session中某个属性失效。
+
+4 session中可以存放多个属性
+5 session可以存放对象
+6 如果session.setAttribute("name",val);如果名字重复，则替换
+
+
+服务器怎么做到为每个浏览器分配一个session？
+浏览器在第一次访问服务器时，服务器会自动创建一个session（实际上是在服务器端程序中调用HttpServletRequest.getSession()时才会创建），带有session id，当服务器在给浏览器响应时，
+会将session id以cookie形式传给浏览器，浏览器端就会使用cookie存储存储session id。当浏览器下次访问服务器时，就会带有cookie中的session id，服务器会识别这个session id，从而取出服务器端对应的session。
+通过抓包，可以观察到：浏览器在第一次访问服务器时，是没有带cookie中的session id信息，但是收到的响应包中，有Set-Cookie:JSESSIONID-.... 浏览器在之后访问服务器过程中，会在http请求中带Cookie:JESSIONID-...信息
+ie----http请求（第一次访问）----->servlet1
+ie<----http响应(Cookie:JESSIONID=..)-----servlet1
+ie----http请求（Cookie:JESSIONID=..）----->servlet2
+servlet会去找到该JESSIONID对应的session
+这种方式返回sessionid时，不会写到文件中。
+
+IE打开之后，再关闭，如何让上次保存在session中的内容还存在呢？
+1 session生命周期默认是30分钟，该session不会随浏览器关闭而销毁，而是到30分钟之后，才会被服务器销毁。
+2 使用session+cookie实现。（如果不设置cookie，因为cookie默认是浏览器关闭，cookie销毁，所以下次再打开浏览时，是无法取到上次的session，但是该session还是在服务器中存在的）
+HttpSession session = request.getSession();
+将 sessionid保存在cookie中(如果不，sessionid不会写入到文件中。会话cookie）
+Cookie cookie = new Cookie("JESSIONID",session.getID());
+cookie.setMaxAge(60*30); //保存30分钟
+reponse.addCookie(cookie);
+
+
+保存session id的方式：
+1 采用cookie保存。
+2 如果cookie被禁止，可以采用URL重写，就是把session id附加在URL路径后面，附加方式有两种：一种是作为URL路径附加的信息，另一种是作为查询字符串附件在URL后面，网络在整个交互过程中始终保持状态，就必须在每个客户端可能请求的路径后面都包含这个session id。
+URL重写，包括超链接，form表单的action，和重定向的URL。这意味着站点上不能有静态的html页面，至少静态页面中不能含有任何链接到动态页面的链接，因此每个页面都必须使用servlet或者jsp动态生成。如果用户离开了会话，会话的信息都会丢失，因为存储下来的链接含有错误的标识信息——该URL后面的SESSIONID已经过期。
+response.encodeRedirectURL(String url) 用于对sendRedirect方法后的url地址进行重写
+reponse.encodeURL(String url) 用于对表单action和超链接的url地址进行重写
+该方法实现机制：首先判断当前web应用是否启动session，如果没有启用，直接返回参数url。再判断客户端浏览器是否支持cookie，如果支持cookie，则返回参数url。如果不支持cookie，就在参数url中加入session id信息，然后返回修改之后的url。
+例子:<a href="wy.jsp"> 修改后<a href="<%=response.encodeURL("wy.jsp")%>">
+3 表单隐藏字段。服务器会自动修改表单，添加一个隐藏字段，以便表单在提交时把session id传给服务器。
+仅当每个页面都有表单提交而动态生成时，才能使用这种方法。<a href=../>超链接不会产生表单提交，因此隐藏的表单域不能支持通常的会话跟踪，只能用于一系列特定的操作中，比如在线商店结账过程。
+
+
+getSession()/getSession(true):当session存在时返回该session，否则新建一个session并返回该对象。
+getSession(false):当session存在时，返回该session，否则不会创建新的session，返回null
+
+打开两个浏览器窗口访问web应用会使用同一个session还是不同的？
+会话cookie是不能跨窗口使用的，当开了一个新的浏览器进入相同页面时，服务器会赋予一个新的session id，这样信息共享的目睹就无法达到。
+此时可以把session id保存在持久cookie中（通过设置cookie的最大有效时间），然后在新窗口中读取出来，就可以得到上一个sessionid了。
+
+session应用：
+1 防止用户非法登录到某个页面。当用户登录成功之后，可以把该用户信息存放到session中，然后在需要
+验证的页面中获取用户的信息，如果为null，则需要用户重新登录
+2 作为购物车存储数据
+3 存储一些用于页面跳转的数据（比如验证码）
+
+理解：cookie可以自己在服务器端创建，但是是保存在浏览器端。而session是由服务器创建，我们自己不可以创建，只能从session中取数据。
+
+
+session和cookie比较：
+1 存在的位置不同。cookie存储在客户端的临时文件夹中。session存储在服务器的内存中，一个session域对象为一个用户浏览器服务。
+2 安全性。cookie以明文存放在客户端，安全性比较差，可以md5加密后存储。session存储在服务器端，安全性比较好。
+3 网络传输量：cookie会传递信息给服务器。session的属性值不会传输给客户端。
+4 生命周期：cookie的生命周期是累积时间，即到点就失效。session声明的是生命周期的间隔时间。即最后一次访问开始后开始计时。
+5 session会占用服务器内存，因此不要往session中存放过大的对象。每个web站点最多存放20多个cookie，每个cookie大小限制在4k以内。
+
+cookie中只能保存ASCII字符，如果需要存取Unicode或者二进制数据，需要进行utf-8等方式的编码。cookie中不能直接存取java对象。
+session中可以存取任何类型的数据，包括string integer list map。session中也可以直接保存java对象，session可以看成是java容器类。
+session是保存在服务器端，为每个用户浏览器产生一个session，如果并发访问用户比较多，则会产生非常多的session，消耗大量的内存。
+cookie保存在客户端，不占用服务器资源。
+cookie需要浏览器的支持，如果客户端禁用了cookie或者不支持cookie，则会话跟踪会失效。此时要使用URL地址重写。所有的URL地址都需要使用response.encodeURL或者
+response.encodeRedirectURL重写。如果客户端支持cookie，则cookie可以设为本浏览器窗口及子窗口有效（-1），也可以设为所有浏览器窗口有效（正数）。
+cookie支持跨域名访问，比如设置domain为.hello.com,那么以它为后缀的所有域名都可以访问该cookie。而session不支持跨域访问，只在它所在的域名内有效。
+
+
+tomcat中session的创建：
+ManagerBase是所有session管理工具类的基类，它是一个抽象类，所有具体实现session管理功能的类都要继承这个类，
+该类有一个受保护的方法，该方法就是创建sessionId值的方法。（tomcat的sessionId值是生成机制是一个随机数+时间戳+jvm的id值，jvm的id值会根据服务器硬件信息计算得来，因此不同jvm的id值是唯一的）。
+StandardManager类是tomcat容器里默认的session管理实现类，将session信息存储到web容器所在的服务器内存中。
+PersistentManagerBase是继承了ManagerBase类，是所有持久化存储session信息的基类，persistentmanager继承了PersistentManagerBase
+类，但是这个类多了一个静态变量和getName方法，对于持久化存储session，tomcat还提供了StoreBase抽象类，是所有持久化存储
+session的基类，另外tomcat还给出了文件存储FileStore和数据存储JDBCStore两个实现。
+
+为什么需要session？
+因为http是无状态的，即访问时不会记录任何信息，访问一次和多次没有任何区别。但是在某些场合，比如登录 购买商品时，
+需要记录一些信息，因此session就出来了。session是有状态的服务。
+

@@ -1,0 +1,29 @@
+外键设置在一对多表的多的那一方。在映射到java对象时，仍然可以在一的表映射的对象中写set集合。
+
+@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "category")
+如果是EAGER，那么表示取出这条数据时，它关联的数据也同时取出放入内存中。如果是LAZY，那么取出这条数据时，它关联的数据并不取出来，在同一个session中，什么时候要用，就什么时候取(再次访问数据库)。但是，在session外，就不能再取了。用EAGER时，因为在内存里，所以在session外也可以取。一般在 一 边设置EAGER
+
+alter table tableName drop foreign key foreignKeyName;
+
+jstl表达式 导入jstl包
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+
+<c:forEach items=${cList} var="c">
+	<li><a href="">${c.name}</a></li>
+</c:foreach>
+
+
+离线查询
+DetachedCriteria criteria = DetachedCriteria.forClass(Video.class);
+//按照上传时间进行倒序排序
+criteria.addOrder(Order.desc("uploadtime"));
+List<Video> list = (List<Video>) this.hibernateTemplate.findByCriteria(criteria, start, end);
+
+img的alt属性 当页面不存在时，可用文字代替。而且，鼠标到图片上时，可以显示文字
+
+<c:forEach items="${c.videos}" var="v" varStatus="i" begin="0" end="3">
+</c:foreach>
+
+数据库设计的三大范式
+数据库索引的原理
+				
